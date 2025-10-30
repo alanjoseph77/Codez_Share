@@ -45,6 +45,29 @@ export function Editor({ documentId, content, onContentChange }: EditorProps) {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text/plain');
+    const target = e.target as HTMLTextAreaElement;
+    const start = target.selectionStart;
+    const end = target.selectionEnd;
+    const newContent = localContent.substring(0, start) + pastedText + localContent.substring(end);
+    
+    setLocalContent(newContent);
+    onContentChange(newContent);
+
+    setTimeout(() => {
+      target.selectionStart = target.selectionEnd = start + pastedText.length;
+    }, 0);
+
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    updateTimeoutRef.current = setTimeout(() => {
+      documentService.updateDocument(documentId, newContent);
+    }, 500);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -75,6 +98,7 @@ export function Editor({ documentId, content, onContentChange }: EditorProps) {
         value={localContent}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         className="w-full h-full p-6 font-mono text-sm bg-gray-900 text-gray-100 resize-none focus:outline-none"
         placeholder="Start typing your code..."
         spellCheck={false}
